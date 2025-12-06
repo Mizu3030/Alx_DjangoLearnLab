@@ -31,4 +31,16 @@ def register_view(request):
     else:
         form = CustomUserCreationForm()
     return render(request, "auth/register.html", {"form": form})
+    # blog/views.py
+@login_required
+def profile_view(request):
+    if request.method == "POST":
+        form = ProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            return redirect("profile")
+    else:
+        form = ProfileForm(instance=request.user)
+    return render(request, "auth/profile.html", {"form": form})
+
 
