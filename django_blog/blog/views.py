@@ -1,4 +1,3 @@
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm
@@ -8,7 +7,8 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.urls import reverse, reverse_lazy
 from django.db.models import Q
 from .forms import CustomUserCreationForm, ProfileForm, PostForm, CommentForm
-from .models import Post, Comment, Tag
+from .models import Post, Comment
+
 
 def login_view(request):
     if request.method == "POST":
@@ -34,6 +34,7 @@ def register_view(request):
     else:
         form = CustomUserCreationForm()
     return render(request, "auth/register.html", {"form": form})
+
 
 
 @login_required
@@ -84,7 +85,76 @@ class PostDeleteView(LoginRequiredMixin, AuthorRequiredMixin, DeleteView):
     success_url = reverse_lazy("post_list")
 
 
+
 class CommentCreateView(LoginRequiredMixin, CreateView):
     model = Comment
     form_class = CommentForm
-    template_name =
+    template_name = "comments/comment_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.post = get_object_or_404(Post, pk=kwargs["pk"])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.post = self.post
+        form.instance.author = self.request.user
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse("post_detail", kwargs={"pk": self.post.pk})
+
+class CommentAuthorRequiredMixin(UserPassesTestMixin):
+    def test_func(self):
+        comment = self.get_object()
+        return comment.author == self.request.user
+
+class CommentUpdateView(LoginRequiredMixin, CommentAuthorRequiredMixin, UpdateView):
+    model = Comment
+    form_class = CommentForm
+    template_name = "comments/comment_form.html"
+
+    def get_success_url(self):
+        return reverse("post_detail", kwargs={"pk": self.object.post.pk})
+
+class CommentDeleteView(LoginRequiredMixin, CommentAuthorRequiredMixin, DeleteView):
+    model = Comment
+    template_name = "comments/comment_confirm_delete.html"
+
+    def get_success_url(self):
+        return reverse("post_detail", kwargs={"pk": self.object.post.pk})
+
+
+
+class TagPostListView(ListView):
+    model = Post
+    template_name = "posts/post_list.html"
+    context_object_name = "posts"
+
+    def get_queryset(self):
+        tag_name = self.kwargs["tag_name"]
+        return Post.objects.filter(tags__name__icontains=tag_name).distinct()
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["current_tag"] = self.kwargs["tag_name"]
+        return ctx
+
+class PostSearchView(ListView):
+    model = Post
+    template_name = "posts/search_results.html"
+    context_object_name = "posts"
+
+    def get_queryset(self):
+        query = self.request.GET.get("q", "").strip()
+        if not query:
+            return Post.objects.none()
+        return Post.objects.filter(
+            Q(title__icontains=query) |
+            Q(content__icontains=query) |
+            Q(tags__name__icontains=query)
+        ).distinct()
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["query"] = self.request.GET.get("q", "")
+        return ctx
