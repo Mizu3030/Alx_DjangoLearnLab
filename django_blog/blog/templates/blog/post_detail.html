@@ -6,9 +6,37 @@
   <div>{{ post.content|linebreaks }}</div>
 </article>
 
-{% if user.is_authenticated and user == post.author %}
-  <a href="{% url 'post_edit' post.pk %}">Edit</a>
-  <a href="{% url 'post_delete' post.pk %}">Delete</a>
+<hr>
+<h2>Comments</h2>
+
+<ul>
+  {% for comment in post.comments.all %}
+    <li>
+      <p>{{ comment.content|linebreaks }}</p>
+      <small>
+        by {{ comment.author.username }} · {{ comment.created_at|date:"Y-m-d H:i" }}
+        {% if user.is_authenticated and user == comment.author %}
+          — <a href="{% url 'comment_update' post.pk comment.pk %}">Edit</a>
+          — <a href="{% url 'comment_delete' post.pk comment.pk %}">Delete</a>
+        {% endif %}
+      </small>
+    </li>
+  {% empty %}
+    <li>No comments yet.</li>
+  {% endfor %}
+</ul>
+
+{% if user.is_authenticated %}
+  <hr>
+  <h3>Add a comment</h3>
+  <form method="post" action="{% url 'comment_create' post.pk %}">
+    {% csrf_token %}
+    {{ form.content.errors }}
+    <textarea name="content" rows="3" required></textarea>
+    <button type="submit">Post comment</button>
+  </form>
+{% else %}
+  <p><a href="{% url 'login' %}">Log in</a> to comment.</p>
 {% endif %}
 
 <a href="{% url 'post_list' %}">Back to list</a>
