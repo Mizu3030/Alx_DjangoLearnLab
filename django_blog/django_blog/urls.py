@@ -1,9 +1,8 @@
-from django.urls import path
-from . import views
+# django_blog/urls.py
+from django.contrib import admin
+from django.urls import path, include
 
 urlpatterns = [
-    path("login/", views.login_view, name="login"),
-    path("logout/", views.logout_view, name="logout"),
-    path("register/", views.register_view, name="register"),
-    path("profile/", views.profile_view, name="profile"),
+    path("admin/", admin.site.urls),
+    path("", include("blog.urls")),  # تأكدي إن اسم التطبيق صحيح
 ]
