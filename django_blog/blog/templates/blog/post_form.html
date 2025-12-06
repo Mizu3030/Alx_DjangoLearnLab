@@ -1,10 +1,29 @@
 {% extends "base.html" %}
+
 {% block content %}
-<h1>{{ view.object|default_if_none:"Create post" }}</h1>
+<h2>{% if view.object %}Edit Post{% else %}Create Post{% endif %}</h2>
+
 <form method="post">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">Save</button>
+    {% csrf_token %}
+    
+    <!-- Title -->
+    {{ form.title.errors }}
+    <label for="{{ form.title.id_for_label }}">Title</label>
+    {{ form.title }}
+    
+    <!-- Content -->
+    {{ form.content.errors }}
+    <label for="{{ form.content.id_for_label }}">Content</label>
+    {{ form.content }}
+    
+    <!-- Tags -->
+    {{ form.tags_text.errors }}
+    <label for="{{ form.tags_text.id_for_label }}">Tags</label>
+    {{ form.tags_text }}
+    <small>Enter comma-separated tags (e.g. django, web, tips)</small>
+    
+    <button type="submit">Save</button>
 </form>
+
 <a href="{% url 'post_list' %}">Cancel</a>
 {% endblock %}
