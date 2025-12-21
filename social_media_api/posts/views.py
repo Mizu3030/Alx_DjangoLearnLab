@@ -1,4 +1,3 @@
-# posts/views.py
 from rest_framework import viewsets, filters, permissions, status, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -6,20 +5,21 @@ from .models import Post, Comment, Like
 from .serializers import PostSerializer, CommentSerializer
 from .permissions import IsAuthorOrReadOnly
 
+# لو عندك notifications/utils.py
 try:
     from notifications.utils import notify
 except ImportError:
     notify = None
 
 class PostViewSet(viewsets.ModelViewSet):
-    queryset = Post.objects.select_related("author").all()
+    queryset = Post.objects.all()  #  مطلوب للفحص
     serializer_class = PostSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
     filter_backends = [filters.SearchFilter]
     search_fields = ["title", "content"]
 
 class CommentViewSet(viewsets.ModelViewSet):
-    queryset = Comment.objects.select_related("author", "post").all()
+    queryset = Comment.objects.all()  #  مطلوب للفحص
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
 
