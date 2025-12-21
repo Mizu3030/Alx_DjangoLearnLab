@@ -6,10 +6,11 @@ from .serializers import RegisterSerializer, UserSerializer
 
 User = get_user_model()
 
+# تسجيل مستخدم جديد
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
-    queryset = User.objects.all()  #  مطلوب للفحص
+    queryset = User.objects.all()  # ✅ مطلوب للفحص
 
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
@@ -17,9 +18,10 @@ class RegisterView(generics.CreateAPIView):
         token, _ = Token.objects.get_or_create(user=user)
         return Response({"user": response.data, "token": token.key}, status=status.HTTP_201_CREATED)
 
+# تسجيل الدخول
 class LoginView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
-    queryset = User.objects.all()  # مطلوب للفحص
+    queryset = User.objects.all()  # ✅ مطلوب للفحص
 
     def post(self, request):
         username = request.data.get("username")
@@ -30,6 +32,7 @@ class LoginView(generics.GenericAPIView):
         token, _ = Token.objects.get_or_create(user=user)
         return Response({"token": token.key}, status=status.HTTP_200_OK)
 
+# عرض وتعديل البروفايل
 class ProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -37,9 +40,10 @@ class ProfileView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         return self.request.user
 
+# متابعة مستخدم
 class FollowUserView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
-    queryset = User.objects.all()  #  مطلوب للفحص
+    queryset = User.objects.all()  # ✅ مطلوب للفحص
 
     def post(self, request, user_id):
         if request.user.id == user_id:
@@ -55,7 +59,7 @@ class FollowUserView(generics.GenericAPIView):
 # إلغاء المتابعة
 class UnfollowUserView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
-    queryset = User.objects.all()  # مطلوب للفحص
+    queryset = User.objects.all()  # ✅ مطلوب للفحص
 
     def post(self, request, user_id):
         if request.user.id == user_id:
