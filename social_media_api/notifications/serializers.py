@@ -1,24 +1,38 @@
-# notifications/serializers.py
 from rest_framework import serializers
-from .models import Notification
+from rest_framework.authtoken.models import Token
+from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
 
-class NotificationSerializer(serializers.ModelSerializer):
-    actor_username = serializers.ReadOnlyField(source="actor.username")
-    recipient_username = serializers.ReadOnlyField(source="recipient.username")
-    target_type = serializers.SerializerMethodField()
+User = get_user_model()
+
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+    password2 = serializers.CharField(write_only=True)
 
     class Meta:
-        model = Notification
-        fields = [
-            "id", "recipient", "recipient_username",
-            "actor", "actor_username",
-            "verb", "description",
-            "target_object_id", "target_type",
-            "created_at", "read",
-        ]
-        read_only_fields = ["id", "recipient", "recipient_username", "actor", "actor_username", "created_at", "target_object_id", "target_type"]
+        model = User
+        fields = ["username", "email", "password", "password2"]
 
-    def get_target_type(self, obj):
-        if obj.target_content_type:
-            return obj.target_content_type.model
-        return None
+    def validate(self, attrs):
+        if attrs["password"] != attrs["password2"]:
+            raise serializers.ValidationError({"password": "Passwords do not match"})
+        validate_password(attrs["password"])
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop("password2")
+        user = User.objects.create_user(**validated_data)
+        Token.objects.create(user=user)
+        return user
+
+class UserSerializer(serializers.ModelSerializer):
+    followers_count = serializers.IntegerField(read_only=True)
+    following_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            "id", "username", "email", "bio", "profile_picture",
+            "followers_count", "following_count",
+        ]
+        read_only_fields = ["id", "followers_count", "following_count"]
