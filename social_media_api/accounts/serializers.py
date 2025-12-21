@@ -21,7 +21,9 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop("password2")
+        #  استخدام create_user من get_user_model
         user = User.objects.create_user(**validated_data)
+        #  إنشاء التوكن بعد التسجيل
         Token.objects.create(user=user)
         return user
 
