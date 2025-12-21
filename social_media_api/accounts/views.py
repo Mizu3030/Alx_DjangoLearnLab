@@ -4,8 +4,12 @@ from rest_framework import status, permissions, generics
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
-
 from .serializers import RegisterSerializer, UserSerializer
+
+try:
+    from notifications.utils import notify
+except ImportError:
+    notify = None
 
 User = get_user_model()
 
@@ -33,28 +37,40 @@ class LoginView(APIView):
 
 class ProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
-
     def get_object(self):
         return self.request.user
 
-class FollowToggleView(APIView):
-    # POST { "user_id": target_id }
-    def post(self, request):
-        target_id = request.data.get("user_id")
+class FollowUserView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, user_id):
+        if request.user.id == user_id:
+            return Response({"detail": "You cannot follow yourself."}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            target = User.objects.get(id=target_id)
+            target = User.objects.get(id=user_id)
         except User.DoesNotExist:
-            return Response({"detail": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        user = request.user
-        if user == target:
-            return Response({"detail": "Cannot follow yourself"}, status=status.HTTP_400_BAD_REQUEST)
+        request.user.following.add(target)
+        if notify:
+            notify(
+                recipient=target,
+                actor=request.user,
+                verb="followed",
+                description=f"{request.user.username} followed you"
+            )
+        return Response({"detail": f"Followed {target.username}."}, status=status.HTTP_200_OK)
 
-        if target in user.following.all():
-            user.following.remove(target)
-            action = "unfollowed"
-        else:
-            user.following.add(target)
-            action = "followed"
+class UnfollowUserView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
-        return Response({"detail": f"{action} {target.username}"}, status=status.HTTP_200_OK)
+    def post(self, request, user_id):
+        if request.user.id == user_id:
+            return Response({"detail": "You cannot unfollow yourself."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            target = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        request.user.following.remove(target)
+        return Response({"detail": f"Unfollowed {target.username}."}, status=status.HTTP_200_OK)
