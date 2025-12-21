@@ -1,3 +1,4 @@
+# accounts/serializers.py
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import get_user_model
@@ -15,7 +16,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if attrs["password"] != attrs["password2"]:
-            raise serializers.ValidationError({"password": "كلمات المرور غير متطابقة"})
+            raise serializers.ValidationError({"password": "Passwords do not match"})
         validate_password(attrs["password"])
         return attrs
 
